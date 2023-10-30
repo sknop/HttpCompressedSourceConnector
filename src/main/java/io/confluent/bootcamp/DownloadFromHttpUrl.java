@@ -6,8 +6,10 @@ import java.io.InputStream;
 import java.net.Authenticator;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.Arrays;
+import java.util.zip.GZIPInputStream;
 
-public class DownloadFromHttpPUrl {
+public class DownloadFromHttpUrl {
     public static void main(String[] args) {
         final int BUFFER_SIZE = 4096;
 
@@ -47,21 +49,22 @@ public class DownloadFromHttpPUrl {
 
                 // opens input stream from the HTTP connection
                 InputStream inputStream = httpConn.getInputStream();
-                String saveFilePath = fileName;
+                GZIPInputStream uncompressStream = new GZIPInputStream(inputStream);
+                String saveFilePath = fileName.replace(".gz", "");
 
                 // opens an output stream to save into file
                 FileOutputStream outputStream = new FileOutputStream(saveFilePath);
 
-                int bytesRead = -1;
+                int bytesRead;
                 byte[] buffer = new byte[BUFFER_SIZE];
-                while ((bytesRead = inputStream.read(buffer)) != -1) {
+                while ((bytesRead = uncompressStream.read(buffer)) != -1) {
                     outputStream.write(buffer, 0, bytesRead);
                 }
 
                 outputStream.close();
                 inputStream.close();
 
-                System.out.println("File downloaded");
+                System.out.println("File " + saveFilePath + " downloaded");
             } else {
                 System.out.println("No file to download. Server replied HTTP code: " + responseCode);
             }
