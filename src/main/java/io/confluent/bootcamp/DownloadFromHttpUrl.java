@@ -2,7 +2,6 @@ package io.confluent.bootcamp;
 
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.Authenticator;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -46,7 +45,6 @@ public class DownloadFromHttpUrl {
                 System.out.println("Content-Length = " + contentLength);
                 System.out.println("fileName = " + fileName);
 
-                // opens input stream from the HTTP connection
                 String saveFilePath = fileName.replace(".gz", "");
                 try (GZIPInputStream uncompressStream = new GZIPInputStream(httpConn.getInputStream());
                         FileOutputStream outputStream = new FileOutputStream(saveFilePath)) {
