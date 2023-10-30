@@ -1,17 +1,14 @@
 package io.confluent.bootcamp;
 
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.net.Authenticator;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.nio.charset.StandardCharsets;
 import java.util.zip.GZIPInputStream;
 
-public class DownloadFromHttpUrl {
+public class ReadFromHttpUrl {
     public static void main(String[] args) {
-        final int BUFFER_SIZE = 4096;
-
         String myURLString = args[0];
         String user = args[1];
         String password = args[2];
@@ -47,18 +44,16 @@ public class DownloadFromHttpUrl {
                 System.out.println("fileName = " + fileName);
 
                 // opens input stream from the HTTP connection
-                String saveFilePath = fileName.replace(".gz", "");
                 try (GZIPInputStream uncompressStream = new GZIPInputStream(httpConn.getInputStream());
-                        FileOutputStream outputStream = new FileOutputStream(saveFilePath)) {
+                     Reader decoder = new InputStreamReader(uncompressStream, StandardCharsets.US_ASCII);
+                     BufferedReader buffered = new BufferedReader(decoder)) {
 
-                    int bytesRead;
-                    byte[] buffer = new byte[BUFFER_SIZE];
-                    while ((bytesRead = uncompressStream.read(buffer)) != -1) {
-                        outputStream.write(buffer, 0, bytesRead);
+                    while (buffered.ready()) {
+                        String line = buffered.readLine();
+                        System.out.println("==> " + line);
                     }
                 }
 
-                System.out.println("File " + saveFilePath + " downloaded");
             } else {
                 System.out.println("No file to download. Server replied HTTP code: " + responseCode);
             }
