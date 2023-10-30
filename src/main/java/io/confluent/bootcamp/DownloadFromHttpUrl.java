@@ -6,7 +6,6 @@ import java.io.InputStream;
 import java.net.Authenticator;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.util.Arrays;
 import java.util.zip.GZIPInputStream;
 
 public class DownloadFromHttpUrl {
