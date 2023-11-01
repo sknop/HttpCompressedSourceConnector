@@ -1,5 +1,7 @@
 package io.confluent.bootcamp;
 
+import io.confluent.bootcamp.connect.http.BasicAuthenticator;
+
 import java.io.*;
 import java.net.Authenticator;
 import java.net.HttpURLConnection;
@@ -12,6 +14,7 @@ public class ReadFromHttpUrl {
         String myURLString = args[0];
         String user = args[1];
         String password = args[2];
+        // int totalLines = args.length > 2 ? Integer.parseInt(args[3]) : -1;
 
         Authenticator.setDefault(new BasicAuthenticator(user, password));
 
