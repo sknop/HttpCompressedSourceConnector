@@ -38,3 +38,5 @@ build/
 .DS_Store
 /.idea/
 /dependency-reduced-pom.xml
+/network.properties
+/kafka.properties
