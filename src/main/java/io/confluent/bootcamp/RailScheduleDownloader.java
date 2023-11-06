@@ -49,11 +49,17 @@ public class RailScheduleDownloader implements Callable<Integer>  {
     @CommandLine.Option(names = {"-t", "--topic"}, defaultValue ="CIF_FULL_DAILY", description = "The topic to write to [CIF_FULL_DAILY]")
     String topic;
 
-    @CommandLine.Option(names = {"--day"}, defaultValue = "toc-full", description = "The file to download, default is toc-full, otherwise toc_update_DAY")
+    @CommandLine.Option(names = {"--day"}, defaultValue = "toc-full", description = "The file to download, default is toc-full, otherwise toc-update-DAY")
     String day;
+
+    @CommandLine.Option(names = {"--type"}, defaultValue = "CIF_ALL_FULL_DAILY", description = "The download type [${DEFAULT-VALUE}] or [CIF_ALL_UPDATE_DAILY]")
+    String type;
 
     @CommandLine.Option(names = {"--skip-lines"}, description = "How many lines to skip from the file [${DEFAULT-VALUE}]")
     long skipLines = 0;
+
+    @CommandLine.Option(names = {"--skip-bytes"}, description = "How many bytes to skip from the file [${DEFAULT-VALUE}]")
+    long skipBytes = 0;
 
     @CommandLine.Option(names = {"--max-lines"}, description = "How many lines to process before cancelling [${DEFAULT-VALUE}]")
     long maxLines = -1;
@@ -63,7 +69,7 @@ public class RailScheduleDownloader implements Callable<Integer>  {
     private String password;
 
     // Counting individual bytes for skipping bytes
-    private int index = 0;
+    private long index = 0;
 
     public RailScheduleDownloader() { }
 
@@ -91,7 +97,7 @@ public class RailScheduleDownloader implements Callable<Integer>  {
     public void readFromUrl() {
         Authenticator.setDefault(new BasicAuthenticator(username, password));
 
-        var fullUrl = urlString + day;
+        var fullUrl = "%s&type=%s&day=%s".formatted(urlString, type,day);
         logger.info(fullUrl);
 
         try {
@@ -149,6 +155,8 @@ public class RailScheduleDownloader implements Callable<Integer>  {
                     totalLines = printFile(httpConn);
                 }
                 System.out.println("Read " + totalLines + " lines.");
+                System.out.println("Total lines including skipped: " + (totalLines+skipLines));
+                System.out.println("Current index is " + index);
             } else {
                 System.out.println("No file to download. Server replied HTTP code: " + responseCode);
             }
@@ -224,13 +232,26 @@ public class RailScheduleDownloader implements Callable<Integer>  {
             if (skipLines > 0) {
                 long linesToSkip = skipLines;
                 while (linesToSkip > 0 && buffered.ready()) {
-                    buffered.readLine();
+                    String line = buffered.readLine();
+                    index += line.length() + 1;
                     linesToSkip -= 1;
                 }
                 logger.info("Skipped {} lines", skipLines - linesToSkip);
             }
+            else if (skipBytes > 0) {
+                long bytesToSkip = skipBytes;
+                while (bytesToSkip > 0) {
+                    long skipped = buffered.skip(bytesToSkip);
+                    bytesToSkip -= skipped;
+                    logger.info("Skipped {} bytes", skipped);
+                }
+
+                index = skipBytes;
+            }
             while (buffered.ready()) {
                 String line = buffered.readLine();
+                index += line.length() + 1;
+
                 System.out.println(line);
 
                 totalLines++;
@@ -279,7 +300,7 @@ public class RailScheduleDownloader implements Callable<Integer>  {
 //    }
 
     @Override
-    public Integer call() throws Exception {
+    public Integer call() {
 
         processConfigFile();
         readFromUrl();
