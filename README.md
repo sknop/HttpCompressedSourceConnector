@@ -24,6 +24,6 @@ The following configuration properties are defined:
 - http.user: Username for Authentication (required)
 - http.password: Password for Authentication (sensitive - required)
 - topic: The topic to which to write to (required)
-- page.size.lines: Number of lines poll returns each go(optional, default 1000)
-- task.pause.ms: Task pause before returning if nothing to do (optional, default 10,000 ms)
+- page.size.lines: Number of lines poll returns each go(optional, default 10000)
+- task.pause.ms: Task pause before returning if nothing to do (optional, default 300,000 ms - 5 min)
 
