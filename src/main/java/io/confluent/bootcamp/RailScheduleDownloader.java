@@ -143,7 +143,7 @@ public class RailScheduleDownloader implements Callable<Integer>  {
 
                 String saveFilePath = fileName.replace(".gz", "");
 
-                int totalLines = 0;
+                int totalLines;
 
                 if (save) {
                     totalLines = saveFile(httpConn, saveFilePath);
