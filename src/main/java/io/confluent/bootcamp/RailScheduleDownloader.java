@@ -97,7 +97,7 @@ public class RailScheduleDownloader implements Callable<Integer>  {
     public void readFromUrl() {
         Authenticator.setDefault(new BasicAuthenticator(username, password));
 
-        var fullUrl = "%s&type=%s&day=%s".formatted(urlString, type,day);
+        var fullUrl = String.format("%s&type=%s&day=%s",urlString, type,day);
         logger.info(fullUrl);
 
         try {
