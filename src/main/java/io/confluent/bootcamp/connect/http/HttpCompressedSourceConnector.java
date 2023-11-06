@@ -39,7 +39,7 @@ public class HttpCompressedSourceConnector extends SourceConnector {
 
     @Override
     public ConfigDef config() {
-        return Configuration.CONFIG_DEF;
+        return HttpCompressedSourceConfiguration.CONFIG_DEF;
     }
 
     @Override
