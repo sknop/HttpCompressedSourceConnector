@@ -8,9 +8,9 @@ The file is broken down into single lines and then written into a single topic.
 The connector is paged, that is, a maximum number of lines will be written in a single batch. The batch size is configurable and set to 1000 lines by default.
 The end of the downloaded file is expected to end with 
 
-  {"EOF":true} 
+>  {"EOF":true} 
   
-but files that do not end this way will be handled gracefully. 
+but files that do not end this way will be handled gracefully (with a warning). 
 
 Once the end of the file is reached, the connection to the HTTP endpoint is closed. 
 Further calls will check the timestamp embedded in the HTTP Header ("lastModified"). 
