@@ -115,7 +115,7 @@ public class HttpCompressedSourceTask extends SourceTask {
             int currentLine = 0;
             boolean eof = false;
             List<SourceRecord> records = new ArrayList<>();
-            while (bufferedReader.ready() && !eof) {
+            while (bufferedReader.ready()) {
                 String line = bufferedReader.readLine();
                 if (line.equals(EOF_TRUE)) {
                     totalLines = -1;
@@ -150,6 +150,21 @@ public class HttpCompressedSourceTask extends SourceTask {
             }
 
             logger.warn("Should never get here. This means the file does not end with {}}",EOF_TRUE);
+
+            // Add dummy record to ensure the connector pauses until the timestamp changes
+
+            records.add(
+                    new SourceRecord(
+                            offsetKey(config.url),
+                            offsetValue(lastModified, -1),
+                            config.topic,
+                            null,
+                            null,
+                            null,
+                            Schema.STRING_SCHEMA,
+                            EOF_TRUE,
+                            System.currentTimeMillis())
+            );
             closeReaderAndConnection();
 
             return records;
