@@ -24,6 +24,7 @@ public class HttpCompressedSourceTask extends SourceTask {
     private static final String URL_FIELD = "url";
     private static final String TIMESTAMP_FIELD = "timestamp";
     private static final String CURRENT_LINE_FIELD = "current_line";
+    private static final String EOF_REACHED_FIELD = "eof_reached";
     public static final String EOF_TRUE = "{\"EOF\":true}";
 
     private HttpURLConnection httpConn;
@@ -33,6 +34,8 @@ public class HttpCompressedSourceTask extends SourceTask {
 
     long lastModified = 0;
     long totalLines = 0;
+
+    boolean reachedOEF = false;
 
     @Override
     public String version() {
@@ -66,19 +69,36 @@ public class HttpCompressedSourceTask extends SourceTask {
                 //         Edge case -> Offset date is set but nothing read yet ?? Not possible
                 Long lastTimestamp = (Long) offset.get(TIMESTAMP_FIELD);
                 Long current_line = (Long) offset.get(CURRENT_LINE_FIELD);
+                Boolean eof_set = (Boolean) offset.get(EOF_REACHED_FIELD);
 
                 if (lastTimestamp == lastModified) {
-                    if (current_line > 0) {
-                        // We have been here before but got interrupted.
-                        linesToSkip = current_line;
-                        totalLines = current_line;
+                    if (!eof_set) {
+                        if (!reachedOEF) {
+                            // We have been here before but got interrupted.
+                            linesToSkip = current_line;
+                            totalLines = current_line;
+                            logger.info("Found current line in offset {}", current_line);
+                        }
+                        else {
+                            // offset have not caught up yet, disconnect and sleep for a while
+                            httpConn.disconnect();
+                            httpConn = null;
+
+                            logger.info("Offset has not caught up yet, offset at {}, totalLines at {}. Sleep for {} ms", current_line, totalLines, config.taskPause);
+
+                            synchronized (this) {
+                                this.wait(config.taskPause);
+                            }
+
+                            return null;
+                        }
                     }
                     else {
                         // standard case: we have processed today's file and there is nothing to do for now
                         httpConn.disconnect();
                         httpConn = null;
 
-                        logger.info("Nothing to do, sleeping for {} ms", config.taskPause); // TODO was trace
+                        logger.info("Nothing to do, sleeping for {} ms", config.taskPause);
 
                         synchronized (this) {
                             this.wait(config.taskPause);
@@ -91,6 +111,7 @@ public class HttpCompressedSourceTask extends SourceTask {
             }
             // If there is no offset, we have not tried to read anything yet -> start fresh
         }
+
         // skip lines if call was interrupted
         // read n lines from stream (pagination)
         //    Create Record with line, set line as offset
@@ -110,26 +131,29 @@ public class HttpCompressedSourceTask extends SourceTask {
                     bufferedReader.readLine();
                     linesToSkip -= 1;
                 }
+                if (linesToSkip > 0) {
+                    logger.warn("Could not skip all lines, lines left to skip : {}", linesToSkip);
+                }
             }
 
             int currentLine = 0;
-            boolean eof = false;
             List<SourceRecord> records = new ArrayList<>();
             while (bufferedReader.ready()) {
                 String line = bufferedReader.readLine();
                 if (line.equals(EOF_TRUE)) {
-                    totalLines = -1;
-                    eof = true;
+                    reachedOEF = true;
                 }
                 else {
+                    // prevents edge case of closing page on EOF if number hit just that leve
                     currentLine++;
-                    totalLines++;
                 }
+
+                totalLines++;
 
                 records.add(
                         new SourceRecord(
                                 offsetKey(config.url),
-                                offsetValue(lastModified, totalLines),
+                                offsetValue(lastModified, totalLines, reachedOEF),
                                 config.topic,
                                 null,
                                 null,
@@ -140,10 +164,12 @@ public class HttpCompressedSourceTask extends SourceTask {
                 );
 
                 if (currentLine >= config.pageSize) {
+                    logger.info("Page Size {} reached, returning {} records, total lines {}", config.pageSize, records.size(), totalLines);
                     return records;
                 }
-                if (eof) {
+                if (reachedOEF) {
                     closeReaderAndConnection();
+                    logger.info("EOF reached, returning {} records, total lines {}", records.size(), totalLines);
 
                     return records;
                 }
@@ -156,7 +182,7 @@ public class HttpCompressedSourceTask extends SourceTask {
             records.add(
                     new SourceRecord(
                             offsetKey(config.url),
-                            offsetValue(lastModified, -1),
+                            offsetValue(lastModified, totalLines, true),
                             config.topic,
                             null,
                             null,
@@ -186,10 +212,11 @@ public class HttpCompressedSourceTask extends SourceTask {
         return Collections.singletonMap(URL_FIELD, url);
     }
 
-    private Map<String, ?> offsetValue(long timestamp, long currentLine) {
+    private Map<String, ?> offsetValue(long timestamp, long currentLine, boolean eof) {
         Map<String, Object> map = new HashMap<>();
         map.put(TIMESTAMP_FIELD, timestamp);
         map.put(CURRENT_LINE_FIELD, currentLine);
+        map.put(EOF_REACHED_FIELD, eof);
 
         return map;
     }
