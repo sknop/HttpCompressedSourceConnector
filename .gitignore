@@ -40,3 +40,4 @@ build/
 /dependency-reduced-pom.xml
 /network.properties
 /kafka.properties
+/source-httpcompressed-toc-full.json
