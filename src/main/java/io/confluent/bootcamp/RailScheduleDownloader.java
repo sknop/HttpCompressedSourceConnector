@@ -1,6 +1,7 @@
 package io.confluent.bootcamp;
 
 import io.confluent.bootcamp.connect.http.BasicAuthenticator;
+import io.confluent.bootcamp.connect.http.Version;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerConfig;
 import org.apache.kafka.clients.producer.ProducerRecord;
@@ -30,7 +31,9 @@ import java.util.zip.GZIPInputStream;
         parameterListHeading = "%nParameters:%n%n",
         optionListHeading    = "%nOptions:%n%n",
         mixinStandardHelpOptions = true,
-        sortOptions = false)
+        sortOptions = false,
+        versionProvider = Version.class,
+        description = "Download compressed Schedule file from URL, and print it/save it/produce it.")
 public class RailScheduleDownloader implements Callable<Integer>  {
     private static final Logger logger = LoggerFactory.getLogger(RailScheduleDownloader.class);
     @CommandLine.Option(names = {"-c", "--config-file"}, required = true,

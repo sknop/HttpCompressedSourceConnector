@@ -44,7 +44,7 @@ public class HttpCompressedSourceConnector extends SourceConnector {
 
     @Override
     public String version() {
-        return Version.getVersion();
+        return new Version().getVersion()[0];
     }
 
     @Override

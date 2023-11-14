@@ -1,9 +1,15 @@
 package io.confluent.bootcamp.connect.http;
 
-public class Version {
-    private final static String version = "1.0.1";
+// See https://github.com/remkop/picocli/blob/main/picocli-examples/src/main/java/picocli/examples/VersionProviderDemo2.java
 
-    static public String getVersion() {
-        return version;
+import io.confluent.bootcamp.RailScheduleDownloader;
+import picocli.CommandLine;
+
+public class Version implements CommandLine.IVersionProvider {
+    public String[] getVersion() {
+        Package mainPackage = RailScheduleDownloader.class.getPackage();
+        String version = mainPackage.getImplementationVersion();
+
+        return new String[] { version};
     }
 }

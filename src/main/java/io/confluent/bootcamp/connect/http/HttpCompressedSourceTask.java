@@ -39,7 +39,7 @@ public class HttpCompressedSourceTask extends SourceTask {
 
     @Override
     public String version() {
-        return Version.getVersion();
+        return new Version().getVersion()[0];
     }
 
     @Override
@@ -107,9 +107,16 @@ public class HttpCompressedSourceTask extends SourceTask {
                         return null;
                     }
                 }
+                else {
+                    // need to reset the state
+                    resetState();
+                }
 
             }
             // If there is no offset, we have not tried to read anything yet -> start fresh
+            else {
+                resetState();
+            }
         }
 
         // skip lines if call was interrupted
@@ -152,7 +159,7 @@ public class HttpCompressedSourceTask extends SourceTask {
 
                 records.add(
                         new SourceRecord(
-                                offsetKey(config.url),
+                                offsetKey(),
                                 offsetValue(lastModified, totalLines, reachedOEF),
                                 config.topic,
                                 null,
@@ -175,13 +182,15 @@ public class HttpCompressedSourceTask extends SourceTask {
                 }
             }
 
-            logger.warn("Should never get here. This means the file does not end with {}}",EOF_TRUE);
+            logger.warn("Should never get here. This means the file did not end with {}}",EOF_TRUE);
 
             // Add dummy record to ensure the connector pauses until the timestamp changes
 
+            reachedOEF = true;
+
             records.add(
                     new SourceRecord(
-                            offsetKey(config.url),
+                            offsetKey(),
                             offsetValue(lastModified, totalLines, true),
                             config.topic,
                             null,
@@ -201,15 +210,24 @@ public class HttpCompressedSourceTask extends SourceTask {
         return null;
     }
 
+    private void resetState() {
+        logger.info("Resetting state");
+
+        totalLines = 0;
+        reachedOEF = false;
+    }
+
     private void closeReaderAndConnection() throws IOException {
+        logger.info("Closing reader and connection");
+
         bufferedReader.close();
         bufferedReader = null;
         httpConn.disconnect();
         httpConn = null;
     }
 
-    private Map<String, String> offsetKey(String url) {
-        return Collections.singletonMap(URL_FIELD, url);
+    private Map<String, String> offsetKey() {
+        return Collections.singletonMap(URL_FIELD, config.url);
     }
 
     private Map<String, ?> offsetValue(long timestamp, long currentLine, boolean eof) {
